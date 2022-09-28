@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Business.Abstract;
 using Entities.Concrete;
+using Entities.DomainModels;
 using Microsoft.AspNetCore.Mvc;
 using MvcWebUI.Helpers;
+using MvcWebUI.Models;
 
 namespace MvcWebUI.Controllers
 {
@@ -27,12 +29,19 @@ namespace MvcWebUI.Controllers
             Product product = _productService.GetById(productId);
 
             var cart = _cartSessionHelper.GetCart(key: "cart");
-
             _cartService.AddToCart(cart,product);
-
             _cartSessionHelper.SetCart(key:"cart", cart);
-
+            TempData.Add("message", product.ProductName + " Sepete Eklendi");
             return RedirectToAction("Index", controllerName:"Product");
+        }
+
+        public IActionResult Index()
+        {
+            var model = new CartListViewModel
+            {
+                Cart = _cartSessionHelper.GetCart(key: "cart")
+            };
+            return View(model);
         }
 
         public IActionResult RemoveFromCart(int productId)
@@ -41,8 +50,29 @@ namespace MvcWebUI.Controllers
             var cart = _cartSessionHelper.GetCart(key:"cart");
             _cartService.RemoveFromCart(cart, productId);
             _cartSessionHelper.SetCart(key:"cart",cart);
+            TempData.Add("message", product.ProductName + " Sepeten Silindi");
+            return RedirectToAction("Index", controllerName: "Cart");
+        }
 
-            return RedirectToAction("Index", controllerName: "Product");
+        public IActionResult Complete()
+        {
+            var model = new ShippingDetailsViewModel
+            {
+                ShippingDetail = new ShippingDetail()
+            };
+            return View(model);
+        }
+
+        [HttpPost]
+        public IActionResult Complete(ShippingDetail shippingDetail)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View();
+            }
+            TempData.Add("message", "Sipariş Başarıyşa tamamlandı");
+            _cartSessionHelper.Clear();
+            return RedirectToAction("Index", controllerName: "Cart");
         }
     }
 }
